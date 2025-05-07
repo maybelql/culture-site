@@ -1,77 +1,81 @@
-import { Suspense } from "react"
-import Image from "next/image"
+'use client'
+
+import { useEffect, useState } from "react"
 import Link from "next/link"
-import { ChevronRight } from "lucide-react"
+import MobileHeader from "@/components/mobile-header"
 import HomeBanner from "@/components/home-banner"
 import CategoryNav from "@/components/category-nav"
 import RecommendedProducts from "@/components/recommended-products"
-import MobileHeader from "@/components/mobile-header"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Button } from "@/components/ui/button"
+import { productApi } from "@/lib/api"
 
 export default function HomePage() {
+  const [popularProduct, setPopularProduct] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchPopularProduct = async () => {
+      try {
+        const response = await productApi.getPopularProducts();
+        if (response.data.data && response.data.data.length > 0) {
+          setPopularProduct(response.data.data[0]);
+        }
+      } catch (error) {
+        console.error('获取热门商品失败:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchPopularProduct();
+  }, []);
+
   return (
-    <main className="flex min-h-screen flex-col bg-background pb-16">
+    <div className="flex flex-col min-h-screen">
       <MobileHeader title="焕遗 IP交易平台" showSearch={true} />
-
       <HomeBanner />
-
-      <div className="p-4 space-y-6">
-        <CategoryNav />
-
-        <div className="flex items-center justify-between">
-          <h2 className="text-lg font-bold">推荐IP</h2>
-          <Link href="/category/all" className="text-sm text-muted-foreground flex items-center">
-            查看更多 <ChevronRight className="h-4 w-4" />
-          </Link>
-        </div>
-
-        <Suspense fallback={<ProductGridSkeleton />}>
-          <RecommendedProducts />
-        </Suspense>
-
-        <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <h2 className="text-lg font-bold">热门IP</h2>
-            <Link href="/category/popular" className="text-sm text-muted-foreground flex items-center">
-              查看更多 <ChevronRight className="h-4 w-4" />
-            </Link>
-          </div>
-
-          <div className="relative rounded-lg overflow-hidden">
-            <Image
-              src="/images/bainiaochaofeng.jpg?height=200&width=600"
-              alt="热门IP"
-              width={600}
-              height={200}
-              className="w-full h-[200px] object-cover"
-            />
-            <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent flex flex-col justify-end p-4">
-              <h3 className="text-white font-bold text-xl">苏州刺绣·百鸟朝凤</h3>
-              <p className="text-white/80 text-sm">国家级非物质文化遗产</p>
-              <Link href="/product/1">
-                <Button className="mt-2 w-fit bg-red-600 hover:bg-red-700">立即查看</Button>
-              </Link>
+      <CategoryNav />
+      
+      {/* 热门商品展示 */}
+      <section className="container py-8">
+        <h2 className="text-2xl font-bold mb-6">热门商品</h2>
+        {loading ? (
+          <div className="grid gap-6 md:grid-cols-2">
+            <Skeleton className="h-[300px] w-full" />
+            <div className="space-y-4">
+              <Skeleton className="h-8 w-3/4" />
+              <Skeleton className="h-4 w-1/2" />
+              <Skeleton className="h-4 w-2/3" />
+              <Skeleton className="h-10 w-1/3" />
             </div>
           </div>
-        </div>
-      </div>
-    </main>
-  )
-}
-
-function ProductGridSkeleton() {
-  return (
-    <div className="grid grid-cols-2 gap-4">
-      {Array(4)
-        .fill(0)
-        .map((_, i) => (
-          <div key={i} className="space-y-2">
-            <Skeleton className="h-[150px] w-full rounded-lg" />
-            <Skeleton className="h-4 w-3/4" />
-            <Skeleton className="h-4 w-1/2" />
+        ) : popularProduct ? (
+          <div className="grid gap-6 md:grid-cols-2">
+            <div className="relative aspect-square overflow-hidden rounded-lg">
+              <img
+                src={popularProduct.imageUrl}
+                alt={popularProduct.name}
+                className="object-cover w-full h-full"
+              />
+            </div>
+            <div className="flex flex-col justify-center space-y-4">
+              <h3 className="text-2xl font-bold">{popularProduct.name}</h3>
+              <p className="text-gray-500">{popularProduct.description}</p>
+              <div className="flex items-center space-x-2">
+                <span className="text-2xl font-bold">￥{popularProduct.price}</span>
+              </div>
+              <Button asChild>
+                <Link href={`/product/${popularProduct.id}`}>查看详情</Link>
+              </Button>
+            </div>
           </div>
-        ))}
+        ) : (
+          <p className="text-center text-gray-500">暂无热门商品</p>
+        )}
+      </section>
+
+      <RecommendedProducts />
     </div>
   )
 }

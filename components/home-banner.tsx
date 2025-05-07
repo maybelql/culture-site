@@ -1,62 +1,64 @@
 "use client"
 
-import { useState, useEffect } from "react"
-import Image from "next/image"
-import { ChevronLeft, ChevronRight } from "lucide-react"
+import { useState } from "react"
 import { Button } from "@/components/ui/button"
+import { ChevronLeft, ChevronRight } from "lucide-react"
+
+const banners = [
+  {
+    id: 1,
+    title: "非物质文化遗产IP授权交易平台",
+    description: "连接传统文化与现代商业的桥梁",
+    image: "/banner1.jpg",
+    link: "/products"
+  },
+  {
+    id: 2,
+    title: "专业IP授权服务",
+    description: "为您的品牌注入文化内涵",
+    image: "/banner2.jpg",
+    link: "/about"
+  }
+]
 
 export default function HomeBanner() {
-  const [currentSlide, setCurrentSlide] = useState(0)
+  const [currentBanner, setCurrentBanner] = useState(0)
 
-  const banners = [
-    {
-      id: 1,
-      title: "中华传统文化",
-      subtitle: "探索千年文化瑰宝",
-      image: "/images/traditional—culture.jpg?height=400&width=800",
-    },
-    {
-      id: 2,
-      title: "非物质文化遗产",
-      subtitle: "传承匠心技艺",
-      image: "/images/feiyi.png?height=400&width=800",
-    },
-    {
-      id: 3,
-      title: "IP授权交易",
-      subtitle: "让传统文化焕发新生",
-      image: "/images/ip—zai.png?height=400&width=800",
-    },
-  ]
-
-  const nextSlide = () => {
-    setCurrentSlide((prev) => (prev + 1) % banners.length)
+  const nextBanner = () => {
+    setCurrentBanner((prev) => (prev + 1) % banners.length)
   }
 
-  const prevSlide = () => {
-    setCurrentSlide((prev) => (prev - 1 + banners.length) % banners.length)
+  const prevBanner = () => {
+    setCurrentBanner((prev) => (prev - 1 + banners.length) % banners.length)
   }
-
-  useEffect(() => {
-    const interval = setInterval(() => {
-      nextSlide()
-    }, 5000)
-
-    return () => clearInterval(interval)
-  }, [])
 
   return (
-    <div className="relative h-[200px] overflow-hidden">
+    <div className="relative w-full h-[300px] overflow-hidden">
       <div
-        className="flex transition-transform duration-500 ease-in-out h-full"
-        style={{ transform: `translateX(-${currentSlide * 100}%)` }}
+        className="absolute inset-0 transition-transform duration-500"
+        style={{
+          transform: `translateX(-${currentBanner * 100}%)`,
+          display: "flex",
+          width: `${banners.length * 100}%`
+        }}
       >
         {banners.map((banner) => (
-          <div key={banner.id} className="min-w-full h-full relative">
-            <Image src={banner.image || "/placeholder.svg"} alt={banner.title} fill className="object-cover" />
-            <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent flex flex-col justify-end p-4">
-              <h2 className="text-white font-bold text-xl">{banner.title}</h2>
-              <p className="text-white/80 text-sm">{banner.subtitle}</p>
+          <div
+            key={banner.id}
+            className="relative w-full h-full flex-shrink-0"
+            style={{ width: `${100 / banners.length}%` }}
+          >
+            <div
+              className="absolute inset-0 bg-cover bg-center"
+              style={{ backgroundImage: `url(${banner.image})` }}
+            />
+            <div className="absolute inset-0 bg-black/40" />
+            <div className="absolute inset-0 flex flex-col items-center justify-center text-white p-4">
+              <h2 className="text-3xl font-bold mb-2">{banner.title}</h2>
+              <p className="text-lg mb-6">{banner.description}</p>
+              <Button asChild>
+                <a href={banner.link}>了解更多</a>
+              </Button>
             </div>
           </div>
         ))}
@@ -65,29 +67,29 @@ export default function HomeBanner() {
       <Button
         variant="ghost"
         size="icon"
-        className="absolute left-2 top-1/2 -translate-y-1/2 bg-white/30 text-white rounded-full"
-        onClick={prevSlide}
+        className="absolute left-4 top-1/2 -translate-y-1/2 bg-white/20 hover:bg-white/30"
+        onClick={prevBanner}
       >
-        <ChevronLeft className="h-5 w-5" />
+        <ChevronLeft className="h-6 w-6 text-white" />
       </Button>
 
       <Button
         variant="ghost"
         size="icon"
-        className="absolute right-2 top-1/2 -translate-y-1/2 bg-white/30 text-white rounded-full"
-        onClick={nextSlide}
+        className="absolute right-4 top-1/2 -translate-y-1/2 bg-white/20 hover:bg-white/30"
+        onClick={nextBanner}
       >
-        <ChevronRight className="h-5 w-5" />
+        <ChevronRight className="h-6 w-6 text-white" />
       </Button>
 
-      <div className="absolute bottom-2 left-0 right-0 flex justify-center gap-1">
+      <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex space-x-2">
         {banners.map((_, index) => (
-          <div
+          <button
             key={index}
-            className={`h-1.5 rounded-full transition-all ${
-              index === currentSlide ? "w-6 bg-white" : "w-1.5 bg-white/50"
+            className={`w-2 h-2 rounded-full transition-colors ${
+              index === currentBanner ? "bg-white" : "bg-white/50"
             }`}
-            onClick={() => setCurrentSlide(index)}
+            onClick={() => setCurrentBanner(index)}
           />
         ))}
       </div>

@@ -1,3 +1,5 @@
+"use client"
+
 import Image from "next/image"
 import { Heart, ShoppingCart, Minus, Plus } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -5,27 +7,115 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import ProductImageGallery from "@/components/product-image-gallery"
 import MobileHeader from "@/components/mobile-header"
 import { Separator } from "@/components/ui/separator"
+import { productApi, cartApi } from "@/lib/api"
+import { useEffect, useState } from "react"
+import { useRouter } from "next/navigation"
+import { toast } from "sonner"
+
+interface Product {
+  id: string;
+  name: string;
+  type: string;
+  category: string;
+  price: number;
+  description: string;
+  imageUrl: string;
+  detail: string;
+  license: {
+    types: string[];
+    terms: {
+      duration: string;
+      price: number;
+    }[];
+  };
+  restrictions: string[];
+}
 
 export default function ProductPage({ params }: { params: { id: string } }) {
+  const router = useRouter();
+  const [product, setProduct] = useState<Product | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [quantity, setQuantity] = useState(1);
+  const [isFavorite, setIsFavorite] = useState(false);
+
+  useEffect(() => {
+    const fetchProduct = async () => {
+      try {
+        const response = await productApi.getProductById(params.id);
+        setProduct(response.data);
+      } catch (error) {
+        console.error('获取商品详情失败:', error);
+        toast.error('获取商品详情失败');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchProduct();
+  }, [params.id]);
+
+  const handleAddToCart = async () => {
+    if (!product) return;
+    
+    try {
+      await cartApi.addToCart({
+        productId: product.id,
+        quantity
+      });
+      toast.success('已添加到购物车');
+    } catch (error) {
+      console.error('添加到购物车失败:', error);
+      toast.error('添加到购物车失败');
+    }
+  };
+
+  if (loading) {
+    return (
+      <main className="flex min-h-screen flex-col bg-background pb-20">
+        <MobileHeader title="产品详情" showBack={true} />
+        <div className="p-4 space-y-4">
+          <div className="h-8 w-3/4 bg-gray-200 rounded animate-pulse" />
+          <div className="h-4 w-1/2 bg-gray-200 rounded animate-pulse" />
+          <div className="h-6 w-1/4 bg-gray-200 rounded animate-pulse" />
+        </div>
+      </main>
+    );
+  }
+
+  if (!product) {
+    return (
+      <main className="flex min-h-screen flex-col bg-background pb-20">
+        <MobileHeader title="产品详情" showBack={true} />
+        <div className="p-4">
+          <p className="text-center text-muted-foreground">商品不存在或已下架</p>
+        </div>
+      </main>
+    );
+  }
+
   return (
     <main className="flex min-h-screen flex-col bg-background pb-20">
       <MobileHeader title="产品详情" showBack={true} />
 
-      <ProductImageGallery />
+      <ProductImageGallery images={[product.imageUrl]} />
 
       <div className="p-4 space-y-4">
         <div className="space-y-2">
           <div className="flex items-center justify-between">
-            <h1 className="text-2xl font-bold">苏州刺绣·百鸟朝凤图案</h1>
-            <Button variant="ghost" size="icon">
-              <Heart className="h-5 w-5" />
+            <h1 className="text-2xl font-bold">{product.name}</h1>
+            <Button 
+              variant="ghost" 
+              size="icon"
+              onClick={() => setIsFavorite(!isFavorite)}
+            >
+              <Heart className={`h-5 w-5 ${isFavorite ? 'fill-red-500 text-red-500' : ''}`} />
             </Button>
           </div>
           <div className="flex items-center text-sm text-muted-foreground">
-            <span className="bg-red-50 text-red-700 px-2 py-0.5 rounded-full text-xs mr-2">刺绣</span>
-            <span className="bg-amber-50 text-amber-700 px-2 py-0.5 rounded-full text-xs">国家级非遗</span>
+            <span className="bg-red-50 text-red-700 px-2 py-0.5 rounded-full text-xs mr-2">{product.type}</span>
+            <span className="bg-amber-50 text-amber-700 px-2 py-0.5 rounded-full text-xs">{product.category}</span>
           </div>
-          <p className="text-2xl font-bold text-red-600">¥2000/年</p>
+          <p className="text-2xl font-bold text-red-600">¥{product.price}/年</p>
           <p className="text-sm text-muted-foreground">自签合同日起，一年后授权到期</p>
         </div>
 
@@ -37,34 +127,34 @@ export default function ProductPage({ params }: { params: { id: string } }) {
           </TabsList>
           <TabsContent value="detail" className="space-y-4 mt-4">
             <p className="text-sm text-muted-foreground">
-              苏州刺绣是中国传统刺绣品种中最具代表性的一种，历史悠久，技艺精湛。"百鸟朝凤"图案是其经典代表作，展现了栩栩如生的百鸟与凤凰，象征着祥和与繁荣。
+              {product.description}
             </p>
             <Image
-              src="/images/bainiaochaofeng.jpg?height=300&width=600"
-              alt="刺绣细节"
+              src={product.imageUrl}
+              alt={product.name}
               width={600}
               height={300}
               className="rounded-lg w-full h-auto"
             />
             <p className="text-sm text-muted-foreground">
-              该IP作品由苏州刺绣研究所授权，可用于产品设计、包装印刷、数字媒体等多种商业用途。
+              {product.detail}
             </p>
           </TabsContent>
           <TabsContent value="license" className="space-y-4 mt-4">
             <div className="space-y-2">
               <h3 className="font-medium">授权类型</h3>
               <ul className="list-disc list-inside text-sm text-muted-foreground space-y-1">
-                <li>商业授权 - 可用于商业产品设计与销售</li>
-                <li>个人使用 - 可用于个人创作与非商业用途</li>
-                <li>教育用途 - 可用于教育机构的教学与研究</li>
+                {product.license.types.map((type, index) => (
+                  <li key={index}>{type}</li>
+                ))}
               </ul>
             </div>
             <div className="space-y-2">
               <h3 className="font-medium">许可年限</h3>
               <ul className="list-disc list-inside text-sm text-muted-foreground space-y-1">
-                <li>1年期 - ¥2000/年</li>
-                <li>3年期 - ¥5000/3年</li>
-                <li>永久授权 - ¥15000/永久</li>
+                {product.license.terms.map((term, index) => (
+                  <li key={index}>{term.duration} - ¥{term.price}</li>
+                ))}
               </ul>
             </div>
           </TabsContent>
@@ -72,10 +162,9 @@ export default function ProductPage({ params }: { params: { id: string } }) {
             <div className="space-y-2">
               <h3 className="font-medium">使用限制</h3>
               <ul className="list-disc list-inside text-sm text-muted-foreground space-y-1">
-                <li>不得用于违反中国法律法规的产品或服务</li>
-                <li>不得篡改IP作品的基本元素与风格</li>
-                <li>不得转授权给第三方使用</li>
-                <li>使用时需注明"苏州刺绣·百鸟朝凤"原创IP</li>
+                {product.restrictions.map((restriction, index) => (
+                  <li key={index}>{restriction}</li>
+                ))}
               </ul>
             </div>
           </TabsContent>
@@ -86,11 +175,21 @@ export default function ProductPage({ params }: { params: { id: string } }) {
         <div className="flex items-center justify-between">
           <div className="text-sm">数量</div>
           <div className="flex items-center gap-3">
-            <Button variant="outline" size="icon" className="h-8 w-8 rounded-full">
+            <Button 
+              variant="outline" 
+              size="icon" 
+              className="h-8 w-8 rounded-full"
+              onClick={() => setQuantity(Math.max(1, quantity - 1))}
+            >
               <Minus className="h-3 w-3" />
             </Button>
-            <span className="text-lg font-medium">1</span>
-            <Button variant="outline" size="icon" className="h-8 w-8 rounded-full">
+            <span className="text-lg font-medium">{quantity}</span>
+            <Button 
+              variant="outline" 
+              size="icon" 
+              className="h-8 w-8 rounded-full"
+              onClick={() => setQuantity(quantity + 1)}
+            >
               <Plus className="h-3 w-3" />
             </Button>
           </div>
@@ -99,7 +198,12 @@ export default function ProductPage({ params }: { params: { id: string } }) {
 
       <div className="fixed bottom-0 left-0 right-0 bg-white border-t p-3 flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <Button variant="outline" size="icon" className="rounded-full">
+          <Button 
+            variant="outline" 
+            size="icon" 
+            className="rounded-full"
+            onClick={() => router.push('/cart')}
+          >
             <ShoppingCart className="h-5 w-5" />
           </Button>
           <div className="text-sm">
@@ -107,7 +211,12 @@ export default function ProductPage({ params }: { params: { id: string } }) {
             <div className="text-red-600">2件</div>
           </div>
         </div>
-        <Button className="flex-1 ml-4 bg-red-600 hover:bg-red-700">加入购物车</Button>
+        <Button 
+          className="flex-1 ml-4 bg-red-600 hover:bg-red-700"
+          onClick={handleAddToCart}
+        >
+          加入购物车
+        </Button>
       </div>
     </main>
   )
